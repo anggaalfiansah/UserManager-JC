@@ -9,18 +9,26 @@ import {
     Image,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 
 const Detail = (props) => {
     const data = props.route.params.item;
 
     const hapusData = () => {
+        // Hapus data di firestore
         firestore()
             .collection('users')
             .doc(data.id)
             .delete()
             .then(() => {
-                alert('Data Berhasil Dihapus');
-                props.navigation.navigate('Users');
+                // Hapus file di storage
+                const storageRef = storage().ref(`images/${data.namaFile}`);
+                storageRef.delete()
+                    .then(() => {
+                        alert('Data Berhasil Dihapus');
+                        // Kembali Ke halaman Utama
+                        props.navigation.navigate('Users');
+                    });
             });
     };
     const editData = () => {
