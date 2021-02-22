@@ -1,11 +1,11 @@
 import React from 'react';
-import Form from './src/components/Form';
-import Home from './src/components/Home';
-import FormUpdate from './src/components/FormUpdate';
+import Form from './src/components/FormScreen/Form';
+import Home from './src/components/HomeScreen/Home';
+import FormUpdate from './src/components/UpdateScreen/FormUpdate';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import 'react-native-gesture-handler';
-import Detail from './src/components/Detail';
+import Detail from './src/components/DetailScreen/Detail';
 
 const Stack = createStackNavigator();
 

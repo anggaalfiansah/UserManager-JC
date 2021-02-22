@@ -4,25 +4,26 @@
 import { Picker } from '@react-native-picker/picker';
 import Geolocation from 'react-native-geolocation-service';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import uuid from 'react-native-uuid';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import React, { useEffect } from 'react';
 import { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image } from 'react-native';
+import { Text, View, TextInput, TouchableOpacity, Image } from 'react-native';
+import { styles } from './style';
 import { Divider } from 'react-native-elements';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-const Form = () => {
-    const [nama, setNama] = useState('');
-    const [gender, setGender] = useState('');
-    const [usia, setUsia] = useState('');
-    const [status, setStatus] = useState('');
-    const [ImageUri, setImageUri] = useState();
-    const [fileExtension, setExtension] = useState();
-    const [koordinat, setKoordinat] = useState('');
+const Form = (props) => {
+    const data = props.route.params.data;
+    const [nama, setNama] = useState(data.nama);
+    const [gender, setGender] = useState(data.gender);
+    const [usia, setUsia] = useState(data.usia);
+    const [status, setStatus] = useState(data.status);
+    const [ImageUri, setImageUri] = useState(data.urlGambar);
+    const [koordinat, setKoordinat] = useState(data.koordinat);
     const [Longitude, setLongitude] = useState(0);
     const [Latitude, setLatitude] = useState(0);
+    console.log(data);
 
     useEffect(() => {
         // Untuk menjalanakan fungsi getLocation supaya lokasi kita dapat diambil secara realtime
@@ -84,7 +85,6 @@ const Form = () => {
             console.log('type -> ', response.type);
             console.log('fileName -> ', response.fileName);
             setImageUri(response.uri);
-            setExtension(response.uri.split('.').pop());
         });
     };
 
@@ -120,20 +120,45 @@ const Form = () => {
             console.log('type -> ', response.type);
             console.log('fileName -> ', response.fileName);
             setImageUri(response.uri);
-            setExtension(response.uri.split('.').pop());
         });
     };
 
     const sendData = () => {
-        const uniqId = uuid.v4();
-        const id = uniqId.toUpperCase();
-        const fileName = `foto-${nama}.${fileExtension}`;
+        const fileName = data.namaFile;
         console.log(fileName);
         const currentDate = new Date();
         const tanggal = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()} ${('0' + currentDate.getHours()).slice(-2)}:${('0' + currentDate.getMinutes()).slice(-2)}:${('0' + currentDate.getSeconds()).slice(-2)}`;
-        if (ImageUri) {
-
-            // Upload File Ke firebase storage
+        // Jika Gambar tidak Diubah
+        if (ImageUri === data.urlGambar) {
+            const update = {
+                id: data.id,
+                nama: nama,
+                gender: gender,
+                usia: usia,
+                status: status,
+                urlGambar: data.urlGambar,
+                namaFile: fileName,
+                koordinat: koordinat,
+                update: tanggal,
+            };
+            firestore().collection('users')
+                .doc(data.id)
+                .update(update)
+                .then(() => {
+                    setNama('');
+                    setGender('');
+                    setUsia('');
+                    setStatus('');
+                    setImageUri();
+                    setKoordinat('');
+                    props.navigation.navigate('Users');
+                })
+                .catch((error) => {
+                    alert(error);
+                });
+        }
+        // Jika Gambar Diubah
+        else {
             const storageRef = storage().ref(`images/${fileName}`);
             storageRef.putFile(`${ImageUri}`)
                 .on(
@@ -155,21 +180,21 @@ const Form = () => {
                             .then((downloadUrl) => {
                                 console.log('File available at: ' + downloadUrl);
 
-                                const data = {
-                                    id : id,
-                                    nama : nama,
+                                const update = {
+                                    id: data.id,
+                                    nama: nama,
                                     gender: gender,
                                     usia: usia,
                                     status: status,
-                                    urlGambar : downloadUrl,
+                                    urlGambar: downloadUrl,
                                     namaFile: fileName,
                                     koordinat: koordinat,
                                     update: tanggal,
                                 };
                                 // Menyimpan semua data di firestore
                                 firestore().collection('users')
-                                    .doc(id)
-                                    .set(data)
+                                    .doc(data.id)
+                                    .update(update)
                                     .then(() => {
                                         setNama('');
                                         setGender('');
@@ -177,6 +202,7 @@ const Form = () => {
                                         setStatus('');
                                         setImageUri();
                                         setKoordinat('');
+                                        props.navigation.navigate('Users');
                                     })
                                     .catch((error) => {
                                         alert(error);
@@ -268,7 +294,7 @@ const Form = () => {
                 </View>
                 <Divider />
                 <TouchableOpacity onPress={sendData} style={styles.tombol}>
-                    <Text style={styles.textTombol}>SUBMIT</Text>
+                    <Text style={styles.textTombol}>Update</Text>
                 </TouchableOpacity>
             </KeyboardAwareScrollView>
         </View>
@@ -276,59 +302,3 @@ const Form = () => {
 };
 
 export default Form;
-
-const styles = StyleSheet.create({
-    container: {
-        marginHorizontal: 20,
-        marginVertical: 30,
-    },
-    input: {
-        height: 50,
-        backgroundColor: 'white',
-        paddingHorizontal: 10,
-        marginVertical: 5,
-    },
-    tombol: {
-        height: 50,
-        backgroundColor: 'pink',
-        borderRadius: 5,
-        marginTop: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-    },
-    tombol2: {
-        alignSelf: 'flex-end',
-        height: 50,
-        width: 175,
-        backgroundColor: '#66ccff',
-        borderRadius: 5,
-        marginVertical: 5,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-    },
-    textTombol: {
-        color: 'white',
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    title: {
-        fontSize: 25,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    imageStyle: {
-        width: 175,
-        height: 175,
-        marginVertical: 5,
-        marginHorizontal: 5,
-        marginRight: 10,
-        borderWidth: 2,
-        borderColor: 'gray',
-    },
-    label: {
-        fontSize: 20,
-        marginVertical: 5,
-    },
-});
